@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Plantão Noturno - Final de Semana</title>
-    <link rel="manifest" href="data:application/json,{}">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ====== CSS existente com adições ====== */
         :root {
             --rio-blue: #002D5E;
             --rio-light: #004A8D;
@@ -28,6 +27,42 @@
             min-height: 100vh;
             padding: 16px;
         }
+        
+        /* Tela de Login */
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            background: #FFF;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-top: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .auth-container h2 { color: var(--rio-blue); text-align: center; margin-bottom: 10px; }
+        .auth-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            outline: none;
+        }
+        .auth-btn {
+            background: var(--rio-blue);
+            color: #FFF;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .auth-btn:hover { background: var(--rio-light); }
+        .auth-toggle { text-align: center; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+
+        /* Container Principal do Calendário */
         .calendar-container {
             width: 100%;
             max-width: 1000px;
@@ -35,7 +70,7 @@
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             overflow: hidden;
-            display: flex;
+            display: none; /* Escondido até fazer login */
             flex-direction: column;
             margin-bottom: 20px;
             position: relative;
@@ -49,6 +84,15 @@
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 2px;
+            position: relative;
+        }
+        .logout-btn {
+            position: absolute;
+            right: 14px; top: 11px;
+            background: rgba(255,255,255,0.2);
+            color: #FFF; border: none;
+            padding: 4px 10px; border-radius: 6px;
+            font-size: 11px; font-weight: bold; cursor: pointer;
         }
         header {
             display: flex;
@@ -61,263 +105,47 @@
             border-bottom: 1px solid var(--border-color);
             position: relative;
         }
-        .title-block {
-            position: relative;
-            width: 100%;
-        }
-        .title-block .month-title {
-            font-size: 36px;
-            font-weight: 800;
-            color: var(--rio-blue);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .title-block .year-title {
-            font-size: 15px;
-            color: var(--accent-bronze);
-            font-weight: 700;
-            letter-spacing: 6px;
-            margin-top: 4px;
-            text-transform: uppercase;
-        }
-        .btn-fix-home {
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: none;
-            border: none;
-            color: var(--rio-blue);
-            font-size: 20px;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 30px;
-            transition: background 0.2s, transform 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-        .btn-fix-home:hover {
-            background: rgba(0,45,94,0.08);
-            transform: scale(1.05);
-        }
-        .btn-fix-home .icon {
-            font-size: 18px;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        .btn-fix-home.pulse .icon {
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        .open-browser-btn {
-            background: #F59E0B;
-            color: #FFF;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            display: none;
-            margin: 8px auto;
-            width: fit-content;
-            transition: 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .open-browser-btn:hover {
-            transform: scale(1.02);
-            background: #D97706;
-        }
+        .title-block { position: relative; width: 100%; }
+        .title-block .month-title { font-size: 36px; font-weight: 800; color: var(--rio-blue); text-transform: uppercase; }
+        .title-block .year-title { font-size: 15px; color: var(--accent-bronze); font-weight: 700; letter-spacing: 6px; margin-top: 4px; }
+        
         .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            width: 100%;
-            justify-content: center;
-            align-items: center;
-            background: #F8FAFC;
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border-color);
+            display: flex; flex-wrap: wrap; gap: 12px; width: 100%; justify-content: center; align-items: center;
+            background: #F8FAFC; padding: 14px 20px; border-bottom: 1px solid var(--border-color);
         }
-        .nav-controls, .view-controls, .search-control, .jump-control {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .toolbar select, .toolbar input {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            font-size: 13px;
-            outline: none;
-            color: var(--text-main);
-            background: #FFF;
-        }
+        .nav-controls, .view-controls, .search-control, .jump-control { display: flex; align-items: center; gap: 6px; }
+        .toolbar select, .toolbar input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 20px; font-size: 13px; background: #FFF; }
+        
         .btn-action {
-            background-color: #FFF;
-            color: var(--rio-blue);
-            border: 1.5px solid var(--rio-blue);
-            padding: 8px 16px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            border-radius: 20px;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            white-space: nowrap;
+            background-color: #FFF; color: var(--rio-blue); border: 1.5px solid var(--rio-blue);
+            padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer; border-radius: 20px; transition: all 0.2s ease; text-transform: uppercase;
         }
-        .btn-action:hover, .btn-action.active {
-            background-color: var(--rio-blue);
-            color: #FFF;
-        }
+        .btn-action:hover, .btn-action.active { background-color: var(--rio-blue); color: #FFF; }
+        
         .calendar-content { padding: 12px; }
-        .calendar-grid-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            table-layout: fixed;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
+        .calendar-grid-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .calendar-grid-table th { background-color: var(--rio-blue); color: #FFF; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 10px 4px; text-align: center; }
+        .calendar-grid-table td { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); vertical-align: top; padding: 6px 4px; height: 120px; background-color: #FFF; position: relative; }
+        .calendar-grid-table .empty-cell { background-color: #F8FAFC; }
+        
+        .date-row { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+        .date-num { font-weight: 700; font-size: 12px; color: #94A3B8; }
+        .duty-day-circle { width: 22px; height: 22px; border: 2px solid var(--rio-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--rio-light); font-size: 11px; font-weight: 800; }
+        
+        .agenda-input {
+            width: 100%; height: 45px; margin-top: 4px; border: 1px dashed transparent; border-radius: 4px;
+            resize: none; font-size: 10px; padding: 2px; background: transparent; color: #334155; outline: none; transition: all 0.2s;
         }
-        .calendar-grid-table th {
-            background-color: var(--rio-blue);
-            color: #FFF;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 10px 4px;
-            letter-spacing: 0.5px;
-            text-align: center;
-        }
-        .calendar-grid-table td {
-            border-right: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: top;
-            padding: 6px 4px;
-            height: 95px;
-            background-color: #FFF;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .calendar-grid-table td:hover {
-            background-color: #F1F5F9;
-        }
-        .calendar-grid-table tr td:last-child { border-right: none; }
-        .calendar-grid-table tr:last-child td { border-bottom: none; }
-        .calendar-grid-table .empty-cell { background-color: #F8FAFC; cursor: default; }
-        .calendar-grid-table .empty-cell:hover { background-color: #F8FAFC; }
-        .date-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            padding-right: 2px;
-        }
-        .date-num {
-            font-weight: 700;
-            font-size: 12px;
-            color: #94A3B8;
-        }
-        .duty-day-circle {
-            width: 22px;
-            height: 22px;
-            border: 2px solid var(--rio-light);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--rio-light);
-            font-size: 11px;
-            font-weight: 800;
-        }
-        .note-indicator {
-            font-size: 12px;
-            color: var(--accent-bronze);
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 4px;
-            background: #FEF3C7;
-            margin-left: 4px;
-        }
-        .note-indicator:hover {
-            background: #FDE68A;
-        }
-        .note-text {
-            font-size: 9px;
-            color: var(--text-muted);
-            background: #F8FAFC;
-            padding: 2px 4px;
-            border-radius: 4px;
-            margin-top: 2px;
-            word-break: break-word;
-            max-height: 30px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .mobile-list-view {
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            padding: 8px;
-        }
-        .mobile-card {
-            background: #FFF;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .mobile-card:hover {
-            background-color: #F8FAFC;
-        }
-        .mobile-card-date {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .mobile-day-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            width: 40px;
-        }
-        .badges-list {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            width: 100%;
-        }
-        .mobile-list-view .badges-list {
-            width: auto;
-            min-width: 130px;
-            align-items: flex-end;
-        }
-        .badge {
-            font-size: 10px;
-            font-weight: 800;
-            color: #FFF;
-            padding: 3px 4px;
-            border-radius: 4px;
-            text-transform: uppercase;
-            width: 100%;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
+        .agenda-input:hover { border-color: #CBD5E1; background: #F8FAFC; }
+        .agenda-input:focus { border-color: var(--rio-light); background: #FFF; }
+
+        .mobile-list-view { display: none; flex-direction: column; gap: 10px; padding: 8px; }
+        .mobile-card { background: #FFF; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+        .mobile-card-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .mobile-day-name { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; width: 40px; }
+        
+        .badges-list { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+        .badge { font-size: 10px; font-weight: 800; color: #FFF; padding: 3px 4px; border-radius: 4px; text-transform: uppercase; text-align: center; }
         .b-julio { background-color: #DC2626; }
         .b-carlos { background-color: #D97706; }
         .b-leticia { background-color: #0891B2; }
@@ -325,190 +153,46 @@
         .b-tatiane { background-color: #2563EB; }
         .b-leandro { background-color: #7C3AED; }
         .b-felipe { background-color: #16A34A; }
+        
         .today-cell { background-color: #FFFBEB !important; border: 2px solid #F59E0B !important; }
         .today-card { border: 2px solid #F59E0B !important; background-color: #FFFBEB !important; }
         
-        /* Modal de anotação */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15,23,42,0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            z-index: 1000;
-        }
-        .modal-card {
-            background: #FFF;
-            border-radius: 16px;
-            padding: 24px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-            animation: scaleUp 0.2s ease-out;
-        }
-        @keyframes scaleUp {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        .modal-card h3 { color: var(--rio-blue); margin-bottom: 12px; font-size: 18px; text-transform: uppercase; }
-        .modal-result-box { margin: 16px 0; display: flex; flex-direction: column; gap: 6px; align-items: center; }
-        .modal-card .badge { font-size: 13px; padding: 6px 16px; width: auto; min-width: 150px; }
-        
-        .note-modal textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 80px;
-            transition: border-color 0.2s;
-        }
-        .note-modal textarea:focus {
-            outline: none;
-            border-color: var(--rio-blue);
-        }
-        .note-modal .modal-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 12px;
-        }
-        .note-modal .btn-delete {
-            background-color: #EF4444;
-            color: #FFF;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .note-modal .btn-delete:hover {
-            background-color: #DC2626;
-        }
-        .note-modal .btn-save {
-            background-color: var(--rio-blue);
-            color: #FFF;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .note-modal .btn-save:hover {
-            background-color: var(--rio-light);
-        }
-        .note-modal .btn-close {
-            background-color: #E2E8F0;
-            color: var(--text-main);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .note-modal .btn-close:hover {
-            background-color: #CBD5E1;
-        }
-        
-        .install-step {
-            text-align: left;
-            margin: 10px 0;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .install-step strong { color: var(--rio-blue); }
-        .install-step .icon {
-            font-size: 24px;
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 6px;
-        }
-        .step-number {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            background: var(--rio-blue);
-            color: #FFF;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 24px;
-            font-weight: 700;
-            margin-right: 8px;
-        }
-        footer {
-            padding: 16px 20px;
-            background-color: #F8FAFC;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .legend-container { display: flex; gap: 14px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; flex-wrap: wrap; }
+        footer { padding: 16px 20px; background-color: #F8FAFC; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .legend-container { display: flex; gap: 14px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
         .legend-item { display: flex; align-items: center; gap: 4px; }
         .l-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .l-active { border: 2px solid var(--rio-light); background: transparent; }
+        .l-active { border: 2px solid var(--rio-light); }
         .l-today { background-color: #FFFBEB; border: 2px solid #F59E0B; }
-        .l-note { background-color: #FEF3C7; border: 2px solid var(--accent-bronze); }
-        .credit-footer { font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
-        .credit-footer strong { color: var(--rio-blue); }
-        .footer-fix-link {
-            font-size: 11px;
-            color: var(--text-muted);
-            text-decoration: none;
-            border: 1px solid var(--border-color);
-            padding: 4px 12px;
-            border-radius: 20px;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .footer-fix-link:hover {
-            background: var(--rio-blue);
-            color: #FFF;
-            border-color: var(--rio-blue);
-        }
         
         @media (max-width: 650px) {
             body { padding: 4px; }
-            .calendar-container { border-radius: 12px; }
             .toolbar { padding: 12px 10px; gap: 12px; flex-direction: column; }
             .nav-controls, .view-controls, .search-control, .jump-control { width: 100%; justify-content: center; }
-            .calendar-grid-table td { height: 75px; padding: 4px 2px; }
-            .badge { font-size: 8.5px; padding: 2px 1px; border-radius: 3px; }
-            .duty-day-circle { width: 18px; height: 18px; font-size: 9px; }
+            .calendar-grid-table td { height: 110px; }
             footer { flex-direction: column; gap: 10px; text-align: center; }
-            .btn-action { font-size: 11px; padding: 6px 12px; }
-            .btn-fix-home { font-size: 12px; }
-            .btn-fix-home .icon { font-size: 16px; }
-            .note-text { font-size: 8px; max-height: 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="calendar-container">
-        <div class="top-bar-header">Final de Semana</div>
+
+    <div class="auth-container" id="auth-screen">
+        <h2 id="auth-title">Entrar na Escala</h2>
+        <input type="email" id="auth-email" class="auth-input" placeholder="Seu e-mail">
+        <input type="password" id="auth-password" class="auth-input" placeholder="Sua senha">
+        <button id="auth-submit-btn" class="auth-btn">Entrar</button>
+        <div id="auth-toggle-mode" class="auth-toggle">Não tem conta? Cadastre-se</div>
+    </div>
+
+    <div class="calendar-container" id="calendar-screen">
+        <div class="top-bar-header">
+            Final de Semana
+            <button class="logout-btn" id="logout-btn">Sair</button>
+        </div>
         <header>
             <div class="title-block">
                 <div class="month-title" id="month-label">Julho</div>
                 <div class="year-title" id="year-label">2026</div>
-                <button class="btn-fix-home pulse" id="btn-add-to-home" aria-label="Adicionar à tela inicial">
-                    <span class="icon">🏠</span> <span class="label">Fixar</span>
-                </button>
             </div>
-            <button class="open-browser-btn" id="open-browser-btn">🌐 Abrir no navegador</button>
         </header>
 
         <div class="toolbar">
@@ -530,10 +214,6 @@
                 <select id="jump-year-select"></select>
                 <button class="btn-action" id="jump-submit-btn">Ir</button>
             </div>
-            <div class="search-control">
-                <input type="date" id="search-date-input">
-                <button class="btn-action" id="search-submit-btn">Buscar</button>
-            </div>
         </div>
 
         <div class="calendar-content">
@@ -548,101 +228,82 @@
             <div class="legend-container">
                 <div class="legend-item"><div class="l-dot l-active"></div> Plantão</div>
                 <div class="legend-item"><div class="l-dot l-today"></div> Hoje</div>
-                <div class="legend-item"><div class="l-dot l-note"></div> Com anotação</div>
             </div>
-            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-                <a href="#" class="footer-fix-link" id="footer-fix-link">🏠 Fixar na Home</a>
-                <span class="credit-footer">Desenvolvido por <strong>Felipe Souza</strong></span>
-            </div>
+            <span class="credit-footer">Desenvolvido por <strong>Felipe Souza</strong></span>
         </footer>
     </div>
 
-    <!-- MODAL DE PESQUISA -->
-    <div class="modal-overlay" id="search-modal">
-        <div class="modal-card">
-            <h3 id="modal-date-title">Data</h3>
-            <div class="modal-result-box" id="modal-results"></div>
-            <button class="btn-action" id="modal-close-btn">Fechar</button>
-        </div>
-    </div>
-
-    <!-- MODAL DE ANOTAÇÃO -->
-    <div class="modal-overlay note-modal" id="note-modal">
-        <div class="modal-card">
-            <h3 id="note-modal-title">Anotação</h3>
-            <textarea id="note-textarea" placeholder="Digite sua anotação aqui..."></textarea>
-            <div class="modal-actions">
-                <button class="btn-delete" id="note-delete-btn">🗑️ Excluir</button>
-                <button class="btn-close" id="note-close-btn">Cancelar</button>
-                <button class="btn-save" id="note-save-btn">💾 Salvar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE INSTALAÇÃO -->
-    <div class="modal-overlay" id="install-modal">
-        <div class="modal-card">
-            <h3>🏠 Fixar na Tela Inicial</h3>
-            <div id="install-instructions" style="text-align: left; margin-top: 12px;"></div>
-            <div style="display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
-                <button class="btn-action" id="install-modal-close">Entendi</button>
-                <button class="btn-action" id="copy-link-btn" style="background: var(--rio-blue); color: #FFF;">Copiar link</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // ========== LÓGICA DO CALENDÁRIO ==========
+        // === CONFIGURAÇÃO DO SUPABASE ===
+        const SUPABASE_URL = "https://hxnjejonbyzeovlziunq.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_kOZ8xbE5i3-s9cNr3vj0qg_DYRXc15V";
+        
+        const supabase = SUPABASE_JS.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // === CONTROLE DE ESTADO DA APLICAÇÃO ===
+        let sessionUser = null;
+        let notesCache = {}; 
         const monthNamesList = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
         const dayNamesList = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
         const staffRotationList = ["Júlio","Carlos","Leticia","Gustavo","Tatiane"];
         let activeMonth = 6, activeYear = 2026, currentViewMode = "grid";
 
-        // ========== SISTEMA DE ANOTAÇÕES (localStorage) ==========
-        const NOTES_KEY = 'calendar_notes';
-        
-        function getNotes() {
-            try {
-                const data = localStorage.getItem(NOTES_KEY);
-                return data ? JSON.parse(data) : {};
-            } catch {
-                return {};
-            }
-        }
-        
-        function saveNotes(notes) {
-            localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
-        }
-        
-        function getNoteKey(year, month, day) {
-            return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        }
-        
-        function getNote(year, month, day) {
-            const notes = getNotes();
-            return notes[getNoteKey(year, month, day)] || '';
-        }
-        
-        function setNote(year, month, day, text) {
-            const notes = getNotes();
-            const key = getNoteKey(year, month, day);
-            if (text && text.trim()) {
-                notes[key] = text.trim();
-            } else {
-                delete notes[key];
-            }
-            saveNotes(notes);
-            buildCalendar();
-        }
-
-        // ========== FUNÇÕES EXISTENTES ==========
+        // Preenche o seletor de anos
         const yearSelect = document.getElementById("jump-year-select");
         for (let y=2026; y<=2035; y++) {
-            let opt = document.createElement("option");
-            opt.value = y; opt.innerText = y;
+            let opt = document.createElement("option"); opt.value = y; opt.innerText = y;
             yearSelect.appendChild(opt);
         }
 
+        // === SISTEMA DE LOGIN E CADASTRO ===
+        let isLoginMode = true;
+        const authScreen = document.getElementById("auth-screen");
+        const calendarScreen = document.getElementById("calendar-screen");
+        const authToggle = document.getElementById("auth-toggle-mode");
+        const authTitle = document.getElementById("auth-title");
+        const authSubmitBtn = document.getElementById("auth-submit-btn");
+
+        authToggle.onclick = () => {
+            isLoginMode = !isLoginMode;
+            authTitle.innerText = isLoginMode ? "Entrar na Escala" : "Criar uma Conta";
+            authSubmitBtn.innerText = isLoginMode ? "Entrar" : "Cadastrar";
+            authToggle.innerText = isLoginMode ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre aqui";
+        };
+
+        authSubmitBtn.onclick = async () => {
+            const email = document.getElementById("auth-email").value;
+            const password = document.getElementById("auth-password").value;
+            if(!email || !password) return alert("Preencha todos os campos!");
+
+            if (isLoginMode) {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) alert("Erro ao entrar: " + error.message);
+            } else {
+                const { data, error } = await supabase.auth.signUp({ email, password });
+                if (error) alert("Erro ao cadastrar: " + error.message);
+                else alert("Cadastro realizado com sucesso! Agora você já pode clicar em Entrar.");
+            }
+        };
+
+        document.getElementById("logout-btn").onclick = async () => {
+            await supabase.auth.signOut();
+        };
+
+        // Escuta mudanças no status de login
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                sessionUser = session.user;
+                authScreen.style.display = "none";
+                calendarScreen.style.display = "flex";
+                loadNotesFromServer();
+            } else {
+                sessionUser = null;
+                authScreen.style.display = "flex";
+                calendarScreen.style.display = "none";
+            }
+        });
+
+        // === LÓGICA DA ESCALA ===
         function calculateDaysFromAnchor(y,m,d) {
             const anchor = Date.UTC(2026,6,3);
             const target = Date.UTC(y,m,d);
@@ -670,35 +331,38 @@
             return { isDuty, activeWorkers };
         }
 
-        // ========== FUNÇÃO PARA ABRIR MODAL DE ANOTAÇÃO ==========
-        let currentNoteDate = null;
-        
-        function openNoteModal(year, month, day) {
-            currentNoteDate = { year, month, day };
-            const dateObj = new Date(year, month, day);
-            const dateStr = `${day}/${month+1}/${year} - ${dayNamesList[dateObj.getDay()]}`;
-            document.getElementById('note-modal-title').textContent = `📝 Anotação - ${dateStr}`;
-            
-            const note = getNote(year, month, day);
-            document.getElementById('note-textarea').value = note;
-            
-            document.getElementById('note-modal').style.display = 'flex';
+        // === INTEGRAÇÃO COM A NUVEM (SALVAR E BUSCAR) ===
+        async function loadNotesFromServer() {
+            if(!sessionUser) return;
+            const { data, error } = await supabase.from('escala_agenda').select('data_chave, nota');
+            if (!error && data) {
+                notesCache = {};
+                data.forEach(item => { notesCache[item.data_chave] = item.nota; });
+                buildCalendar();
+            }
         }
 
-        function closeNoteModal() {
-            document.getElementById('note-modal').style.display = 'none';
-            currentNoteDate = null;
+        let saveTimeout;
+        function saveNoteToServer(dayNum, text) {
+            const key = `${activeYear}_${activeMonth}_${dayNum}`;
+            notesCache[key] = text;
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                await supabase.from('escala_agenda').upsert({
+                    user_id: sessionUser.id,
+                    data_chave: key,
+                    nota: text
+                }, { onConflict: 'user_id,data_chave' });
+            }, 500); 
         }
 
-        // ========== BUILD CALENDAR (MODIFICADO) ==========
         function buildCalendar() {
             const firstDay = new Date(activeYear, activeMonth, 1).getDay();
             const daysInMonth = new Date(activeYear, activeMonth+1, 0).getDate();
             const today = new Date();
             document.getElementById("month-label").innerText = monthNamesList[activeMonth];
             document.getElementById("year-label").innerText = activeYear;
-            document.getElementById("jump-month-select").value = activeMonth;
-            document.getElementById("jump-year-select").value = activeYear;
 
             const tbody = document.getElementById("calendar-table-body");
             const listView = document.getElementById("main-list-view");
@@ -717,57 +381,43 @@
                         const isToday = (dayNum === today.getDate() && activeYear === today.getFullYear() && activeMonth === today.getMonth());
                         if (isToday) td.className = "today-cell";
                         
-                        const { isDuty, activeWorkers } = getWorkersForDate(activeYear, activeMonth, dayNum);
-                        const note = getNote(activeYear, activeMonth, dayNum);
-                        
+                        const currentDayNum = dayNum; 
+                        const { isDuty, activeWorkers } = getWorkersForDate(activeYear, activeMonth, currentDayNum);
+                        const savedNote = notesCache[`${activeYear}_${activeMonth}_${currentDayNum}`] || "";
+
                         let html = `<div class="date-row">`;
-                        html += isDuty ? `<div class="duty-day-circle">${dayNum}</div>` : `<div class="date-num">${dayNum}</div>`;
-                        html += note ? `<span class="note-indicator" title="Clique para editar anotação">📝</span>` : '';
+                        html += isDuty ? `<div class="duty-day-circle">${currentDayNum}</div>` : `<div class="date-num">${currentDayNum}</div>`;
                         html += `</div><div class="badges-list">`;
                         activeWorkers.forEach(w => html += `<span class="badge b-${cleanStringForClass(w)}">${w}</span>`);
-                        if (note) {
-                            html += `<div class="note-text">${note}</div>`;
-                        }
                         html += `</div>`;
+                        html += `<textarea class="agenda-input" data-day="${currentDayNum}" placeholder="Anotar...">${savedNote}</textarea>`;
                         td.innerHTML = html;
-                        
-                        // Adiciona evento de clique para abrir anotação
-                        td.addEventListener('click', function(e) {
-                            // Impede que o clique no indicador dispare duas vezes
-                            if (e.target.closest('.note-indicator')) return;
-                            openNoteModal(activeYear, activeMonth, dayNum);
-                        });
-                        
-                        // Evento para o indicador de anotação
-                        const indicator = td.querySelector('.note-indicator');
-                        if (indicator) {
-                            indicator.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                openNoteModal(activeYear, activeMonth, dayNum);
-                            });
-                        }
 
-                        if (isDuty) {
+                        const tx = td.querySelector('.agenda-input');
+                        tx.oninput = (e) => saveNoteToServer(currentDayNum, e.target.value);
+
+                        if (isDuty || savedNote) {
                             let card = document.createElement("div");
                             card.className = `mobile-card ${isToday ? 'today-card' : ''}`;
-                            card.addEventListener('click', function() {
-                                openNoteModal(activeYear, activeMonth, dayNum);
-                            });
-                            let cardHtml = `
-                                <div class="mobile-card-date">
-                                    <div class="mobile-day-name">${dayNamesList[d]}</div>
-                                    <div class="duty-day-circle">${dayNum}</div>
+                            card.innerHTML = `
+                                <div class="mobile-card-header">
+                                    <div class="mobile-card-date">
+                                        <div class="mobile-day-name">${dayNamesList[d]}</div>
+                                        <div class="duty-day-circle">${currentDayNum}</div>
+                                    </div>
+                                    <div class="badges-list"></div>
                                 </div>
-                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                                    <div class="badges-list">
+                                <textarea class="agenda-input" placeholder="Anotar no celular...">${savedNote}</textarea>
                             `;
-                            activeWorkers.forEach(w => cardHtml += `<span class="badge b-${cleanStringForClass(w)}">${w}</span>`);
-                            cardHtml += `</div>`;
-                            if (note) {
-                                cardHtml += `<div class="note-text" style="max-width: 150px;">${note}</div>`;
-                            }
-                            cardHtml += `</div>`;
-                            card.innerHTML = cardHtml;
+                            const bList = card.querySelector('.badges-list');
+                            activeWorkers.forEach(w => bList.innerHTML += `<span class="badge b-${cleanStringForClass(w)}">${w}</span>`);
+                            
+                            const mobileTx = card.querySelector('.agenda-input');
+                            mobileTx.oninput = (e) => {
+                                saveNoteToServer(currentDayNum, e.target.value);
+                                const desktopTx = tbody.querySelector(`textarea[data-day="${currentDayNum}"]`);
+                                if(desktopTx) desktopTx.value = e.target.value;
+                            };
                             listView.appendChild(card);
                         }
                         dayNum++;
@@ -779,41 +429,12 @@
             }
         }
 
-        // ========== EVENTOS DOS BOTÕES ==========
-        function updateViewToggle() {
-            if (currentViewMode === "grid") {
-                document.getElementById("main-grid-view").style.display = "table";
-                document.getElementById("main-list-view").style.display = "none";
-                document.getElementById("view-grid-btn").classList.add("active");
-                document.getElementById("view-list-btn").classList.remove("active");
-            } else {
-                document.getElementById("main-grid-view").style.display = "none";
-                document.getElementById("main-list-view").style.display = "flex";
-                document.getElementById("view-grid-btn").classList.remove("active");
-                document.getElementById("view-list-btn").classList.add("active");
-            }
-        }
-        document.getElementById("view-grid-btn").onclick = () => { currentViewMode="grid"; updateViewToggle(); };
-        document.getElementById("view-list-btn").onclick = () => { currentViewMode="list"; updateViewToggle(); };
+        // Controles de Navegação
+        document.getElementById("view-grid-btn").onclick = () => { currentViewMode="grid"; document.getElementById("main-grid-view").style.display = "table"; document.getElementById("main-list-view").style.display = "none"; };
+        document.getElementById("view-list-btn").onclick = () => { currentViewMode="list"; document.getElementById("main-grid-view").style.display = "none"; document.getElementById("main-list-view").style.display = "flex"; };
         document.getElementById("btn-prev-month").onclick = () => { activeMonth--; if(activeMonth<0){activeMonth=11;activeYear--;} buildCalendar(); };
         document.getElementById("btn-next-month").onclick = () => { activeMonth++; if(activeMonth>11){activeMonth=0;activeYear++;} buildCalendar(); };
         document.getElementById("jump-submit-btn").onclick = () => { activeMonth=parseInt(document.getElementById("jump-month-select").value); activeYear=parseInt(document.getElementById("jump-year-select").value); buildCalendar(); };
-        
-        document.getElementById("search-submit-btn").onclick = () => {
-            const val = document.getElementById("search-date-input").value;
-            if(!val) return alert("Selecione uma data!");
-            const parts = val.split("-");
-            const y=parseInt(parts[0]), m=parseInt(parts[1])-1, d=parseInt(parts[2]);
-            const { isDuty, activeWorkers } = getWorkersForDate(y,m,d);
-            const note = getNote(y,m,d);
-            document.getElementById("modal-date-title").innerText = `${d}/${m+1}/${y}`;
-            const box = document.getElementById("modal-results");
-            box.innerHTML = "";
-            if(!isDuty && !note) box.innerHTML = "<p style='color:#64748B;font-weight:600;'>Nenhum plantão ou anotação.</p>";
-            if(isDuty) activeWorkers.forEach(w => box.innerHTML += `<span class="badge b-${cleanStringForClass(w)}">${w}</span>`);
-            if(note) box.innerHTML += `<div style="margin-top: 8px; background: #FEF3C7; padding: 8px; border-radius: 8px; width: 100%; text-align: center; font-weight: 600; color: var(--accent-bronze);">📝 ${note}</div>`;
-            document.getElementById("search-modal").style.display = "flex";
-        };
-        document.getElementById("modal-close-btn").onclick = () => { document.getElementById("search-modal").style.display = "none"; };
-        document.querySelectorAll(".modal-overlay").forEach(overlay => {
-            overlay.addEventListener("click", function
+    </script>
+</body>
+</html>
