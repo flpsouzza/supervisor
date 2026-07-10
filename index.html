@@ -243,7 +243,6 @@
         const SUPABASE_URL = "https://hxnjejonbyzeovlziunq.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_kOZ8xbE5i3-s9cNr3vj0qg_DYRXc15V"; 
         
-        // Corrigido o nome da variável local para evitar colisões com o escopo global da CDN
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // === CONTROLE DE ESTADO DA APLICAÇÃO ===
@@ -382,6 +381,51 @@
             }, 500); 
         }
 
+        // === FUNÇÃO NOVA: REPLICAR ANOTAÇÃO POR DIAS CORRIDOS ===
+        async function replicateNoteInBulk(startDay, text) {
+            const promptDays = prompt("Deseja replicar esta anotação por quantos dias corridos para frente?", "10");
+            if (!promptDays) return;
+            
+            const totalDaysToApply = parseInt(promptDays);
+            if (isNaN(totalDaysToApply) || totalDaysToApply <= 0) return alert("Por favor, digite um número de dias válido.");
+
+            let currentDateObj = new Date(activeYear, activeMonth, startDay);
+            let upsertArray = [];
+
+            for (let i = 0; i < totalDaysToApply; i++) {
+                const targetYear = currentDateObj.getFullYear();
+                const targetMonth = currentDateObj.getMonth();
+                const targetDay = currentDateObj.getDate();
+                const key = `${targetYear}_${targetMonth}_${targetDay}`;
+
+                // Atualiza o cache local
+                notesCache[key] = text;
+
+                // Adiciona na lista para subir pro banco de dados em lote
+                upsertArray.push({
+                    user_id: sessionUser.id,
+                    data_chave: key,
+                    nota: text
+                });
+
+                // Avança 1 dia corrido na linha do tempo (atravessa meses/anos perfeitamente)
+                currentDateObj.setDate(currentDateObj.getDate() + 1);
+            }
+
+            // Envia tudo de uma vez só para o Supabase de forma super eficiente
+            try {
+                const { error } = await supabaseClient.from('escala_agenda').upsert(upsertArray, { onConflict: 'user_id,data_chave' });
+                if (error) {
+                    alert("Erro ao salvar replicação no banco: " + error.message);
+                } else {
+                    // Remonta o calendário para mostrar as novas notas aplicadas na tela
+                    buildCalendar();
+                }
+            } catch (err) {
+                alert("Falha na conexão de rede: " + err.message);
+            }
+        }
+
         function buildCalendar() {
             const firstDay = new Date(activeYear, activeMonth, 1).getDay();
             const daysInMonth = new Date(activeYear, activeMonth+1, 0).getDate();
@@ -406,74 +450,3 @@
                     if ((w===0 && d<firstDay) || dayNum > daysInMonth) {
                         td.className = "empty-cell";
                     } else {
-                        hasData = true;
-                        const isToday = (dayNum === today.getDate() && activeYear === today.getFullYear() && activeMonth === today.getMonth());
-                        if (isToday) td.className = "today-cell";
-                        
-                        const currentDayNum = dayNum; 
-                        const { isDuty, activeWorkers } = getWorkersForDate(activeYear, activeMonth, currentDayNum);
-                        const savedNote = notesCache[`${activeYear}_${activeMonth}_${currentDayNum}`] || "";
-
-                        let html = `<div class="date-row">`;
-                        html += isDuty ? `<div class="duty-day-circle">${currentDayNum}</div>` : `<div class="date-num">${currentDayNum}</div>`;
-                        html += `</div><div class="badges-list">`;
-                        activeWorkers.forEach(w => html += `<span class="badge b-${cleanStringForClass(w)}">${w}</span>`);
-                        html += `</div>`;
-                        html += `<textarea class="agenda-input" data-day="${currentDayNum}" placeholder="Anotar...">${savedNote}</textarea>`;
-                        td.innerHTML = html;
-
-                        const tx = td.querySelector('.agenda-input');
-                        tx.oninput = (e) => saveNoteToServer(currentDayNum, e.target.value);
-
-                        if ((isDuty || savedNote) && listView) {
-                            let card = document.createElement("div");
-                            card.className = `mobile-card ${isToday ? 'today-card' : ''}`;
-                            card.innerHTML = `
-                                <div class="mobile-card-header">
-                                    <div class="mobile-card-date">
-                                        <div class="mobile-day-name">${dayNamesList[d]}</div>
-                                        <div class="duty-day-circle">${currentDayNum}</div>
-                                    </div>
-                                    <div class="badges-list"></div>
-                                </div>
-                                <textarea class="agenda-input" placeholder="Anotar no celular...">${savedNote}</textarea>
-                            `;
-                            const bList = card.querySelector('.badges-list');
-                            activeWorkers.forEach(w => bList.innerHTML += `<span class="badge b-${cleanStringForClass(w)}">${w}</span>`);
-                            
-                            const mobileTx = card.querySelector('.agenda-input');
-                            mobileTx.oninput = (e) => {
-                                saveNoteToServer(currentDayNum, e.target.value);
-                                const desktopTx = tbody.querySelector(`textarea[data-day="${currentDayNum}"]`);
-                                if(desktopTx) desktopTx.value = e.target.value;
-                            };
-                            listView.appendChild(card);
-                        }
-                        dayNum++;
-                    }
-                    tr.appendChild(td);
-                }
-                if (hasData) tbody.appendChild(tr);
-                if (dayNum > daysInMonth) break;
-            }
-        }
-
-        // Controles de Navegação
-        if(document.getElementById("view-grid-btn")) {
-            document.getElementById("view-grid-btn").onclick = () => { currentViewMode="grid"; document.getElementById("main-grid-view").style.display = "table"; document.getElementById("main-list-view").style.display = "none"; };
-        }
-        if(document.getElementById("view-list-btn")) {
-            document.getElementById("view-list-btn").onclick = () => { currentViewMode="list"; document.getElementById("main-grid-view").style.display = "none"; document.getElementById("main-list-view").style.display = "flex"; };
-        }
-        if(document.getElementById("btn-prev-month")) {
-            document.getElementById("btn-prev-month").onclick = () => { activeMonth--; if(activeMonth<0){activeMonth=11;activeYear--;} buildCalendar(); };
-        }
-        if(document.getElementById("btn-next-month")) {
-            document.getElementById("btn-next-month").onclick = () => { activeMonth++; if(activeMonth>11){activeMonth=0;activeYear++;} buildCalendar(); };
-        }
-        if(document.getElementById("jump-submit-btn")) {
-            document.getElementById("jump-submit-btn").onclick = () => { activeMonth=parseInt(document.getElementById("jump-month-select").value); activeYear=parseInt(document.getElementById("jump-year-select").value); buildCalendar(); };
-        }
-    </script>
-</body>
-</html>
