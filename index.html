@@ -51,7 +51,7 @@
             outline: none;
         }
         .auth-btn {
-            background: var(--rio-blue);
+            width: 100%;
             color: #FFF;
             border: none;
             padding: 12px;
@@ -60,8 +60,11 @@
             cursor: pointer;
             transition: 0.2s;
         }
-        .auth-btn:hover { background: var(--rio-light); }
-        .auth-toggle { text-align: center; font-size: 13px; color: var(--text-muted); cursor: pointer; padding: 5px; }
+        .btn-login { background: var(--rio-blue); }
+        .btn-login:hover { background: var(--rio-light); }
+        .btn-register { background: #475569; margin-top: 5px; }
+        .btn-register:hover { background: #334155; }
+        .auth-divider { text-align: center; font-size: 12px; color: var(--text-muted); margin: 5px 0; position: relative; }
 
         /* Container Principal do Calendário */
         .calendar-container {
@@ -178,11 +181,13 @@
 
     <!-- TELA DE AUTENTICAÇÃO -->
     <div class="auth-container" id="auth-screen">
-        <h2 id="auth-title">Entrar na Escala</h2>
+        <h2>Acesso à Escala</h2>
         <input type="email" id="auth-email" class="auth-input" placeholder="Seu e-mail">
         <input type="password" id="auth-password" class="auth-input" placeholder="Sua senha">
-        <button id="auth-submit-btn" class="auth-btn">Entrar</button>
-        <div id="auth-toggle-mode" class="auth-toggle">Não tem conta? Cadastre-se</div>
+        
+        <button id="auth-login-btn" class="auth-btn btn-login">Entrar</button>
+        <div class="auth-divider">ou se for seu primeiro acesso</div>
+        <button id="auth-register-btn" class="auth-btn btn-register">Criar Nova Conta</button>
     </div>
 
     <!-- CALENDÁRIO PRINCIPAL -->
@@ -258,33 +263,34 @@
             yearSelect.appendChild(opt);
         }
 
-        // === SISTEMA DE LOGIN E CADASTRO ===
-        let isLoginMode = true;
+        // === ELEMENTOS DA TELA ===
         const authScreen = document.getElementById("auth-screen");
         const calendarScreen = document.getElementById("calendar-screen");
-        const authToggle = document.getElementById("auth-toggle-mode");
-        const authTitle = document.getElementById("auth-title");
-        const authSubmitBtn = document.getElementById("auth-submit-btn");
+        const loginBtn = document.getElementById("auth-login-btn");
+        const registerBtn = document.getElementById("auth-register-btn");
 
-        authToggle.onclick = () => {
-            isLoginMode = !isLoginMode;
-            authTitle.innerText = isLoginMode ? "Entrar na Escala" : "Criar uma Conta";
-            authSubmitBtn.innerText = isLoginMode ? "Entrar" : "Cadastrar";
-            authToggle.innerText = isLoginMode ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre aqui";
-        };
-
-        authSubmitBtn.onclick = async () => {
-            const email = document.getElementById("auth-email").value;
+        // Botão de Logar
+        loginBtn.onclick = async () => {
+            const email = document.getElementById("auth-email").value.trim();
             const password = document.getElementById("auth-password").value;
             if(!email || !password) return alert("Preencha todos os campos!");
 
-            if (isLoginMode) {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) alert("Erro ao entrar: " + error.message);
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert("Erro ao entrar: " + error.message);
+        };
+
+        // Botão de Cadastrar
+        registerBtn.onclick = async () => {
+            const email = document.getElementById("auth-email").value.trim();
+            const password = document.getElementById("auth-password").value;
+            if(!email || !password) return alert("Preencha o e-mail e a senha que deseja cadastrar!");
+            if(password.length < 6) return alert("A senha precisa ter pelo menos 6 caracteres!");
+
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                alert("Erro ao cadastrar: " + error.message);
             } else {
-                const { data, error } = await supabase.auth.signUp({ email, password });
-                if (error) alert("Erro ao cadastrar: " + error.message);
-                else alert("Cadastro realizado com sucesso! Agora você já pode clicar em Entrar.");
+                alert("Cadastro realizado com sucesso! Sua conta foi criada e você já está conectado.");
             }
         };
 
