@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Plantão Noturno - Final de Semana</title>
+    <!-- Incluindo a biblioteca do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -60,7 +61,7 @@
             transition: 0.2s;
         }
         .auth-btn:hover { background: var(--rio-light); }
-        .auth-toggle { text-align: center; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+        .auth-toggle { text-align: center; font-size: 13px; color: var(--text-muted); cursor: pointer; padding: 5px; }
 
         /* Container Principal do Calendário */
         .calendar-container {
@@ -175,6 +176,7 @@
 </head>
 <body>
 
+    <!-- TELA DE AUTENTICAÇÃO -->
     <div class="auth-container" id="auth-screen">
         <h2 id="auth-title">Entrar na Escala</h2>
         <input type="email" id="auth-email" class="auth-input" placeholder="Seu e-mail">
@@ -183,6 +185,7 @@
         <div id="auth-toggle-mode" class="auth-toggle">Não tem conta? Cadastre-se</div>
     </div>
 
+    <!-- CALENDÁRIO PRINCIPAL -->
     <div class="calendar-container" id="calendar-screen">
         <div class="top-bar-header">
             Final de Semana
