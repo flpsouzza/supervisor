@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Plantão Noturno - Final de Semana</title>
-    <!-- Incluindo a biblioteca oficial do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -126,30 +125,46 @@
         }
         .btn-action:hover, .btn-action.active { background-color: var(--rio-blue); color: #FFF; }
         
-        .calendar-content { padding: 12px; }
-        .calendar-grid-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        /* Área do Calendário adaptada contra esmagamento */
+        .calendar-content { 
+            padding: 12px; 
+            width: 100%;
+            overflow-x: auto; /* Permite rolar para o lado no celular se faltar espaço */
+            -webkit-overflow-scrolling: touch;
+        }
+        .calendar-grid-table { 
+            width: 100%; 
+            min-width: 600px; /* Garante que a tabela nunca encolha menos que 600px, protegendo os nomes */
+            border-collapse: separate; 
+            border-spacing: 0; 
+            table-layout: fixed; 
+            border: 1px solid var(--border-color); 
+            border-radius: 12px; 
+            overflow: hidden; 
+        }
         .calendar-grid-table th { background-color: var(--rio-blue); color: #FFF; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 10px 4px; text-align: center; }
-        .calendar-grid-table td { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); vertical-align: top; padding: 6px 4px; height: 120px; background-color: #FFF; position: relative; }
+        .calendar-grid-table td { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); vertical-align: top; padding: 6px 4px; height: 125px; background-color: #FFF; position: relative; }
         .calendar-grid-table .empty-cell { background-color: #F8FAFC; }
         
         .date-row { display: flex; justify-content: flex-end; margin-bottom: 4px; }
-        .date-num { font-weight: 700; font-size: 12px; color: #94A3B8; }
-        .duty-day-circle { width: 22px; height: 22px; border: 2px solid var(--rio-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--rio-light); font-size: 11px; font-weight: 800; }
+        .date-num { font-weight: 700; font-size: 11px; color: #94A3B8; }
+        .duty-day-circle { width: 20px; height: 20px; border: 2px solid var(--rio-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--rio-light); font-size: 10px; font-weight: 800; }
         
         .agenda-input {
-            width: 100%; height: 45px; margin-top: 4px; border: 1px dashed transparent; border-radius: 4px;
+            width: 100%; height: 50px; margin-top: 4px; border: 1px dashed transparent; border-radius: 4px;
             resize: none; font-size: 10px; padding: 2px; background: transparent; color: #334155; outline: none; transition: all 0.2s;
         }
         .agenda-input:hover { border-color: #CBD5E1; background: #F8FAFC; }
         .agenda-input:focus { border-color: var(--rio-light); background: #FFF; }
 
-        .mobile-list-view { display: none; flex-direction: column; gap: 10px; padding: 8px; }
+        .mobile-list-view { display: none; flex-direction: column; gap: 10px; padding: 8px; width: 100%; }
         .mobile-card { background: #FFF; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
         .mobile-card-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-        .mobile-day-name { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; width: 40px; }
+        .mobile-card-date { display: flex; align-items: center; gap: 8px; }
+        .mobile-day-name { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
         
         .badges-list { display: flex; flex-direction: column; gap: 3px; width: 100%; }
-        .badge { font-size: 10px; font-weight: 800; color: #FFF; padding: 3px 4px; border-radius: 4px; text-transform: uppercase; text-align: center; }
+        .badge { font-size: 9px; font-weight: 800; color: #FFF; padding: 2px 4px; border-radius: 4px; text-transform: uppercase; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .b-julio { background-color: #DC2626; }
         .b-carlos { background-color: #D97706; }
         .b-leticia { background-color: #0891B2; }
@@ -167,11 +182,17 @@
         .l-dot { width: 10px; height: 10px; border-radius: 50%; }
         .l-active { border: 2px solid var(--rio-light); }
         .l-today { background-color: #FFFBEB; border: 2px solid #F59E0B; }
+        
+        @media (max-width: 650px) {
+            body { padding: 4px; }
+            .toolbar { padding: 12px 10px; gap: 12px; flex-direction: column; }
+            .nav-controls, .view-controls, .search-control, .jump-control { width: 100%; justify-content: center; }
+            footer { flex-direction: column; gap: 10px; text-align: center; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- TELA DE AUTENTICAÇÃO -->
     <div class="auth-container" id="auth-screen">
         <h2>Acesso à Escala</h2>
         <input type="email" id="auth-email" class="auth-input" placeholder="Seu e-mail">
@@ -182,7 +203,6 @@
         <button id="auth-register-btn" class="auth-btn btn-register">Criar Nova Conta</button>
     </div>
 
-    <!-- CALENDÁRIO PRINCIPAL -->
     <div class="calendar-container" id="calendar-screen">
         <div class="top-bar-header">
             Final de Semana
@@ -307,7 +327,7 @@
         if (document.getElementById("logout-btn")) {
             document.getElementById("logout-btn").onclick = async () => {
                 await supabaseClient.auth.signOut();
-                localStorage.clear(); // Força a limpeza das sessões antigas
+                localStorage.clear(); 
                 window.location.reload();
             };
         }
@@ -472,7 +492,7 @@
                             replicateNoteInBulk(currentDayNum, e.target.value);
                         };
 
-                        if ((isDuty || savedNote) && listView) {
+                        if (listView) {
                             let card = document.createElement("div");
                             card.className = `mobile-card ${isToday ? 'today-card' : ''}`;
                             card.innerHTML = `
@@ -488,45 +508,4 @@
                             const bList = card.querySelector('.badges-list');
                             activeWorkers.forEach(w => bList.innerHTML += `<span class="badge b-${cleanStringForClass(w)}">${w}</span>`);
                             
-                            const mobileTx = card.querySelector('.agenda-input');
-                            mobileTx.oninput = (e) => {
-                                saveNoteToServer(currentDayNum, e.target.value);
-                                const desktopTx = tbody.querySelector(`textarea[data-day="${currentDayNum}"]`);
-                                if(desktopTx) desktopTx.value = e.target.value;
-                            };
-
-                            mobileTx.ondblclick = (e) => {
-                                if(!e.target.value.trim()) return alert("Digite o texto antes de replicar!");
-                                replicateNoteInBulk(currentDayNum, e.target.value);
-                            };
-
-                            listView.appendChild(card);
-                        }
-                        dayNum++;
-                    }
-                    tr.appendChild(td);
-                }
-                if (hasData) tbody.appendChild(tr);
-                if (dayNum > daysInMonth) break;
-            }
-        }
-
-        // Controles de Navegação
-        if(document.getElementById("view-grid-btn")) {
-            document.getElementById("view-grid-btn").onclick = () => { currentViewMode="grid"; document.getElementById("main-grid-view").style.display = "table"; document.getElementById("main-list-view").style.display = "none"; };
-        }
-        if(document.getElementById("view-list-btn")) {
-            document.getElementById("view-list-btn").onclick = () => { currentViewMode="list"; document.getElementById("main-grid-view").style.display = "none"; document.getElementById("main-list-view").style.display = "flex"; };
-        }
-        if(document.getElementById("btn-prev-month")) {
-            document.getElementById("btn-prev-month").onclick = () => { activeMonth--; if(activeMonth<0){activeMonth=11;activeYear--;} buildCalendar(); };
-        }
-        if(document.getElementById("btn-next-month")) {
-            document.getElementById("btn-next-month").onclick = () => { activeMonth++; if(activeMonth>11){activeMonth=0;activeYear++;} buildCalendar(); };
-        }
-        if(document.getElementById("jump-submit-btn")) {
-            document.getElementById("jump-submit-btn").onclick = () => { activeMonth=parseInt(document.getElementById("jump-month-select").value); activeYear=parseInt(document.getElementById("jump-year-select").value); buildCalendar(); };
-        }
-    </script>
-</body>
-</html>
+                            const mobileTx = card.querySelector('.agenda-input
