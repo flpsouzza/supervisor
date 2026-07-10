@@ -1,4 +1,264 @@
-// === CONFIGURAÇÃO DO SUPABASE ===
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Plantão Noturno - Final de Semana</title>
+    <!-- Incluindo a biblioteca oficial do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --rio-blue: #002D5E;
+            --rio-light: #004A8D;
+            --accent-bronze: #8C6239;
+            --bg-body: #F4F7FA;
+            --bg-card: #FFFFFF;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background-color: var(--bg-body);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        /* Tela de Login */
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            background: #FFF;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-top: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .auth-container h2 { color: var(--rio-blue); text-align: center; margin-bottom: 10px; }
+        .auth-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            outline: none;
+        }
+        .auth-btn {
+            width: 100%;
+            color: #FFF;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-login { background: var(--rio-blue); }
+        .btn-login:hover { background: var(--rio-light); }
+        .btn-register { background: #475569; margin-top: 5px; }
+        .btn-register:hover { background: #334155; }
+        .auth-divider { text-align: center; font-size: 12px; color: var(--text-muted); margin: 5px 0; position: relative; }
+
+        /* Container Principal do Calendário */
+        .calendar-container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            overflow: hidden;
+            display: none; 
+            flex-direction: column;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .top-bar-header {
+            background-color: var(--rio-blue);
+            color: #FFF;
+            text-align: center;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+        }
+        .logout-btn {
+            position: absolute;
+            right: 14px; top: 11px;
+            background: rgba(255,255,255,0.2);
+            color: #FFF; border: none;
+            padding: 4px 10px; border-radius: 6px;
+            font-size: 11px; font-weight: bold; cursor: pointer;
+        }
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            background: #FFF;
+            gap: 16px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        .title-block { position: relative; width: 100%; }
+        .title-block .month-title { font-size: 36px; font-weight: 800; color: var(--rio-blue); text-transform: uppercase; }
+        .title-block .year-title { font-size: 15px; color: var(--accent-bronze); font-weight: 700; letter-spacing: 6px; margin-top: 4px; }
+        
+        .toolbar {
+            display: flex; flex-wrap: wrap; gap: 12px; width: 100%; justify-content: center; align-items: center;
+            background: #F8FAFC; padding: 14px 20px; border-bottom: 1px solid var(--border-color);
+        }
+        .nav-controls, .view-controls, .search-control, .jump-control { display: flex; align-items: center; gap: 6px; }
+        .toolbar select, .toolbar input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 20px; font-size: 13px; background: #FFF; }
+        
+        .btn-action {
+            background-color: #FFF; color: var(--rio-blue); border: 1.5px solid var(--rio-blue);
+            padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer; border-radius: 20px; transition: all 0.2s ease; text-transform: uppercase;
+        }
+        .btn-action:hover, .btn-action.active { background-color: var(--rio-blue); color: #FFF; }
+        
+        /* Área do Calendário adaptada contra esmagamento */
+        .calendar-content { 
+            padding: 12px; 
+            width: 100%;
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch;
+        }
+        .calendar-grid-table { 
+            width: 100%; 
+            min-width: 600px; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            table-layout: fixed; 
+            border: 1px solid var(--border-color); 
+            border-radius: 12px; 
+            overflow: hidden; 
+        }
+        .calendar-grid-table th { background-color: var(--rio-blue); color: #FFF; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 10px 4px; text-align: center; }
+        .calendar-grid-table td { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); vertical-align: top; padding: 6px 4px; height: 125px; background-color: #FFF; position: relative; }
+        .calendar-grid-table .empty-cell { background-color: #F8FAFC; }
+        
+        .date-row { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+        .date-num { font-weight: 700; font-size: 11px; color: #94A3B8; }
+        .duty-day-circle { width: 20px; height: 20px; border: 2px solid var(--rio-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--rio-light); font-size: 10px; font-weight: 800; }
+        
+        .agenda-input {
+            width: 100%; height: 50px; margin-top: 4px; border: 1px dashed transparent; border-radius: 4px;
+            resize: none; font-size: 10px; padding: 2px; background: transparent; color: #334155; outline: none; transition: all 0.2s;
+        }
+        .agenda-input:hover { border-color: #CBD5E1; background: #F8FAFC; }
+        .agenda-input:focus { border-color: var(--rio-light); background: #FFF; }
+
+        .mobile-list-view { display: none; flex-direction: column; gap: 10px; padding: 8px; width: 100%; }
+        .mobile-card { background: #FFF; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+        .mobile-card-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .mobile-card-date { display: flex; align-items: center; gap: 8px; }
+        .mobile-day-name { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        
+        .badges-list { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+        .badge { font-size: 9px; font-weight: 800; color: #FFF; padding: 2px 4px; border-radius: 4px; text-transform: uppercase; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .b-julio { background-color: #DC2626; }
+        .b-carlos { background-color: #D97706; }
+        .b-leticia { background-color: #0891B2; }
+        .b-gustavo { background-color: #EA580C; }
+        .b-tatiane { background-color: #2563EB; }
+        .b-leandro { background-color: #7C3AED; }
+        .b-felipe { background-color: #16A34A; }
+        
+        .today-cell { background-color: #FFFBEB !important; border: 2px solid #F59E0B !important; }
+        .today-card { border: 2px solid #F59E0B !important; background-color: #FFFBEB !important; }
+        
+        footer { padding: 16px 20px; background-color: #F8FAFC; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .legend-container { display: flex; gap: 14px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .l-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .l-active { border: 2px solid var(--rio-light); }
+        .l-today { background-color: #FFFBEB; border: 2px solid #F59E0B; }
+        
+        @media (max-width: 650px) {
+            body { padding: 4px; }
+            .toolbar { padding: 12px 10px; gap: 12px; flex-direction: column; }
+            .nav-controls, .view-controls, .search-control, .jump-control { width: 100%; justify-content: center; }
+            footer { flex-direction: column; gap: 10px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE AUTENTICAÇÃO -->
+    <div class="auth-container" id="auth-screen">
+        <h2>Acesso à Escala</h2>
+        <input type="email" id="auth-email" class="auth-input" placeholder="Seu e-mail">
+        <input type="password" id="auth-password" class="auth-input" placeholder="Sua senha">
+        
+        <button id="auth-login-btn" class="auth-btn btn-login">Entrar</button>
+        <div class="auth-divider">ou se for seu primeiro acesso</div>
+        <button id="auth-register-btn" class="auth-btn btn-register">Criar Nova Conta</button>
+    </div>
+
+    <!-- CALENDÁRIO PRINCIPAL -->
+    <div class="calendar-container" id="calendar-screen">
+        <div class="top-bar-header">
+            Final de Semana
+            <button class="logout-btn" id="logout-btn">Sair</button>
+        </div>
+        <header>
+            <div class="title-block">
+                <div class="month-title" id="month-label">Julho</div>
+                <div class="year-title" id="year-label">2026</div>
+            </div>
+        </header>
+
+        <div class="toolbar">
+            <div class="nav-controls">
+                <button class="btn-action" id="btn-prev-month">« Ant</button>
+                <button class="btn-action" id="btn-next-month">Próx »</button>
+            </div>
+            <div class="view-controls">
+                <button class="btn-action active" id="view-grid-btn">Calendário</button>
+                <button class="btn-action" id="view-list-btn">Lista</button>
+            </div>
+            <div class="jump-control">
+                <select id="jump-month-select">
+                    <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
+                    <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
+                    <option value="6" selected>Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
+                    <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
+                </select>
+                <select id="jump-year-select"></select>
+                <button class="btn-action" id="jump-submit-btn">Ir</button>
+            </div>
+        </div>
+
+        <div class="calendar-content">
+            <table class="calendar-grid-table" id="main-grid-view">
+                <thead><tr><th>Dom</th><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th></tr></thead>
+                <tbody id="calendar-table-body"></tbody>
+            </table>
+            <div class="mobile-list-view" id="main-list-view"></div>
+        </div>
+
+        <footer>
+            <div class="legend-container">
+                <div class="legend-item"><div class="l-dot l-active"></div> Plantão</div>
+                <div class="legend-item"><div class="l-dot l-today"></div> Hoje</div>
+            </div>
+            <span class="credit-footer">Desenvolvido por <strong>Felipe Souza</strong></span>
+        </footer>
+    </div>
+
+    <!-- SCRIPT DE PROGRAMAÇÃO CORRIGIDO -->
+    <script>
+        // === CONFIGURAÇÃO DO SUPABASE ===
         const SUPABASE_URL = "https://hxnjejonbyzeovlziunq.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_kOZ8xbE5i3-s9cNr3vj0qg_DYRXc15V"; 
         
@@ -27,7 +287,7 @@
         const loginBtn = document.getElementById("auth-login-btn");
         const registerBtn = document.getElementById("auth-register-btn");
 
-        // Botão de Logar (Modificado para destravar sempre)
+        // Botão de Logar
         loginBtn.onclick = async () => {
             const email = document.getElementById("auth-email").value.trim();
             const password = document.getElementById("auth-password").value;
@@ -42,14 +302,14 @@
                     alert("Erro do Supabase: " + error.message);
                 }
             } catch(err) {
-                alert("Falha total na conexão. O Supabase pode estar fora do ar devido à instabilidade do painel: " + err.message);
+                alert("Falha na conexão: " + err.message);
             } finally {
                 loginBtn.innerText = "Entrar";
                 loginBtn.disabled = false;
             }
         };
 
-        // Botão de Cadastrar (Modificado para destravar sempre)
+        // Botão de Cadastrar
         registerBtn.onclick = async () => {
             const email = document.getElementById("auth-email").value.trim();
             const password = document.getElementById("auth-password").value;
@@ -64,7 +324,7 @@
                 if (error) {
                     alert("O banco recusou o cadastro: " + error.message);
                 } else {
-                    alert("Tentativa enviada! Se o banco aceitou, tente fazer o login agora.");
+                    alert("Conta criada com sucesso! Tente realizar o login agora.");
                 }
             } catch (err) {
                 alert("Falha ao tentar cadastrar: " + err.message);
@@ -297,3 +557,6 @@
         if(document.getElementById("jump-submit-btn")) {
             document.getElementById("jump-submit-btn").onclick = () => { activeMonth=parseInt(document.getElementById("jump-month-select").value); activeYear=parseInt(document.getElementById("jump-year-select").value); buildCalendar(); };
         }
+    </script>
+</body>
+</html>
